@@ -2,25 +2,13 @@
 
 ## Publishing New Releases
 
-First, create a new release branch, using the naming convention "release/<new version>":
+First, create a new release branch, using the naming convention "release/<new version>" (eg: "release/0.1.1"):
 
 ```shell
 git checkout -b release/0.1.1
 ```
 
-Next, determine which semver level to bump. Use this table if you are unsure:
-
-| Resource                    | Documentation |  Add  | Update | Remove |
-|-----------------------------|:-------------:|:-----:|:------:|:------:|
-| kit                         |     patch     | minor |   -    | major  |
-| capability                  |     patch     | minor |   -    | major  |
-| interface (optional)        |     patch     | minor | major  | major  |
-| interface (required)        |     patch     | major | major  | major  |
-| data model                  |     patch     | minor | major  | major  |
-| data model field (optional) |     patch     | minor | major  | major  |
-| data model field (required) |     patch     | major | major  | major  |
-
-Then, execute the following in your release branch.
+Next, determine which semver level (patch/minor/major) to bump.  Then, execute the following in your release branch:
 
 ```shell
 poetry version <patch|minor|major>

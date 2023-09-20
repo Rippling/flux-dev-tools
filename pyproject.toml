@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rippling-flux-dev-tools"
-version = "0.0.1"
+version = "0.0.2"
 description = "Rippling Flux App development tools."
 authors = ["Rippling Apps <apps@rippling.com>"]
 readme = "README.md"

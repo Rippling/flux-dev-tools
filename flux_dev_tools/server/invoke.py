@@ -7,6 +7,7 @@ from .serialization import FluxJSONEncoder, FluxJSONDecoder
 
 def invoke(event):
     hook = event['hook']
+    hook_params = event['hook_params']
     app_implementation_type = event['app_implementation_type']
     app_name = event['app_name']
     kit_name = event['kit_name']
@@ -37,7 +38,7 @@ def invoke(event):
 
         parameters = ()
         for parameter_name, parameter in method_signature.parameters.items():
-            parameters += (json.loads(event[parameter_name], cls=FluxJSONDecoder, target_type=parameter.annotation),)
+            parameters += (json.loads(hook_params[parameter_name], cls=FluxJSONDecoder, target_type=parameter.annotation),)
 
     return json.dumps(hook_method(*parameters), cls=FluxJSONEncoder)
 

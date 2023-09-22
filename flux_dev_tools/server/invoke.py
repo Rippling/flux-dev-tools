@@ -1,34 +1,51 @@
-import base64
 import importlib
-import io
+import json
+from functools import reduce
 
-import jsonpickle
+from .serialization import FluxJSONEncoder, FluxJSONDecoder
 
-from flux_sdk.pension.capabilities.update_payroll_contributions.data_models import (
-    EmployeePayrollRecord,
-    PayrollUploadSettings,
-)
 
-def invoke(app: str, event: dict[str, any]):
+def invoke(event):
     hook = event['hook']
+    hook_params = event['hook_params']
+    app_implementation_type = event['app_implementation_type']
+    app_name = event['app_name']
+    kit_name = event['kit_name']
+    capability_snake_case = convert_to_snakecase(app_implementation_type)
+    kit_snake_case = convert_to_snakecase(kit_name)
 
-    if hook == 'parse_deductions':
-        impl = import_implementation(app, "pension", "update_deduction_elections")
-        uri = event['uri']
-        file_content: bytes = base64.b85decode(jsonpickle.decode(event['content']))
-        stream: io.IOBase = io.StringIO(file_content.decode())
-        return jsonpickle.encode(impl.UpdateDeductionElectionsImpl.parse_deductions(uri, stream))
-    elif hook == 'get_file_name':
-        impl = import_implementation(app, "pension", "update_payroll_contributions")
-        payroll_upload_settings: PayrollUploadSettings = jsonpickle.decode(event['payroll_upload_settings'])
-        result = impl.UpdatePayrollContributionsImpl.get_file_name(payroll_upload_settings)
-        return result
-    elif hook == 'format_deductions':
-        impl = import_implementation(app, "pension", "update_payroll_contributions")
-        employee_payroll_records: list[EmployeePayrollRecord] = jsonpickle.decode(event['employee_payroll_records'])
-        payroll_upload_settings: PayrollUploadSettings = jsonpickle.decode(event['payroll_upload_settings'])
-        return jsonpickle.encode(base64.b85encode(impl.UpdatePayrollContributionsImpl.format_deductions(employee_payroll_records, payroll_upload_settings)))
+    module_path = ".".join(
+        [
+            "flux_apps",
+            convert_to_snakecase(app_name),
+            kit_snake_case,
+            "capabilities",
+            capability_snake_case,
+            "implementation",
+        ]
+    )
+
+    module = importlib.import_module(module_path)
+
+    module_cls = app_implementation_type + "Impl"
+
+    if module and hasattr(module, module_cls):
+        app_class = getattr(module, module_cls)
+        hook_method = getattr(app_class, hook)
+
+        import inspect
+        method_signature = inspect.signature(hook_method)
+
+        parameters = ()
+        for parameter_name, parameter in method_signature.parameters.items():
+            parameters += (json.loads(hook_params[parameter_name], cls=FluxJSONDecoder, target_type=parameter.annotation),)
+
+    return json.dumps(hook_method(*parameters), cls=FluxJSONEncoder)
 
 
-def import_implementation(root, kit, capability):
-    return importlib.import_module(f".{kit}_kit.capabilities.{capability}.implementation", root)
+def convert_to_snakecase(s: str) -> str:
+    """
+    Convert a string to snake case. For example, "MyApp" becomes "my_app".
+    This is to follow the python convention for module names.
+    """
+    return reduce(lambda x, y: x + ("_" if y.isupper() else "") + y, s).lower()

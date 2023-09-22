@@ -4,7 +4,6 @@ import traceback
 from flask import Flask, request
 from werkzeug.exceptions import HTTPException, NotFound, UnsupportedMediaType
 
-# NOTE: this import will likely be replaced by another dependency which will encapsulate routing, validation, etc
 from .invoke import invoke
 
 
@@ -18,9 +17,9 @@ def create_app():
             "versions": {dep: version(dep) for dep in ["Flask", "rippling-flux-sdk", "rippling-flux-dev-tools"]}
         }
 
-    @app.route("/invoke/<string:flux_app>", methods=["POST"])
-    def route_invoke(flux_app: str):
-        return invoke(flux_app, request.get_json())
+    @app.route("/invoke", methods=["POST"])
+    def route_invoke():
+        return invoke(request.get_json())
 
     @app.errorhandler(404)
     def page_not_found(err: NotFound):

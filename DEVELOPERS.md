@@ -2,26 +2,9 @@
 
 ## Publishing New Releases
 
-First, create a new release branch, using the naming convention "release/<new version>" (eg: "release/0.1.1"):
+Each merge to the `main` branch will create a new release using the format `<major>.<minor>.<build number>`.
 
-```shell
-git checkout -b release/0.1.1
-```
+The `<major>` and `<minor>` need to be updated in any PR which introduces changes beyond simply bug fixes. If the change
+is not backwards-compatible, bump "major". Otherwise (this should be most of the time), bump "minor".
 
-Next, determine which semver level (patch/minor/major) to bump.  Then, execute the following in your release branch:
-
-```shell
-poetry version <patch|minor|major>
-```
-
-Which will update `pyproject.toml` and print the new version:
-
-> Bumping version from 0.1.0 to 0.1.1
-
-Commit this change and open a Pull Request with your branch. Once approved and merged, create a new release using the
-GitHub Releases UI:
-- tag: create a new tag using the new version (eg: "0.1.1")
-- title: "Release <new version>" (eg: "Release 0.1.1")
-- description: click "Generate release notes" to allow GitHub to automate this
-
-Once published, a GitHub Actions workflow will take care of publishing the new release to PyPI.
+The `<build number>` is an always-increasing number from the "publish" GitHub Actions workflow.

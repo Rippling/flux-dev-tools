@@ -124,7 +124,7 @@ class FluxJSONDecoder(json.JSONDecoder):
             return [self._convert_object(item, target_type) for item in obj]
 
         if target_type is not None:
-            if obj is None or type(obj) is get_origin(target_type):
+            if obj is None or type(obj) is get_origin(target_type) or type(obj) is target_type:
                 return obj
             elif target_type is Decimal:
                 return Decimal(obj)

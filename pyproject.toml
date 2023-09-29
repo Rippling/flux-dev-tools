@@ -10,7 +10,6 @@ packages = [{include="flux_dev_tools"}]
 python = "^3.9"
 Flask = "^2.3.3"
 werkzeug = "^2.3.7"
-jsonpickle = "^3.0.2"
 rippling-flux-sdk = "^0.0.1"
 
 [build-system]

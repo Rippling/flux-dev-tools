@@ -17,7 +17,7 @@ def invoke(event):
     module_path = ".".join(
         [
             "flux_apps",
-            convert_to_snakecase(app_name),
+            "app",
             kit_snake_case,
             "capabilities",
             capability_snake_case,

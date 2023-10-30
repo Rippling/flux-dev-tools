@@ -9,7 +9,7 @@ packages = [{include="flux_dev_tools"}]
 [tool.poetry.dependencies]
 python = "^3.9"
 Flask = "^2.3.3"
-werkzeug = "^2.3.7"
+werkzeug = ">=2.3.7,<4.0.0"
 rippling-flux-sdk = "^0"
 
 [build-system]

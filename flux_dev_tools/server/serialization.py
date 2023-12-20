@@ -1,6 +1,7 @@
 import base64
 import io
 import json
+from dataclasses import is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
@@ -50,7 +51,7 @@ class FluxJSONEncoder(json.JSONEncoder):
         if isinstance(obj, dict):
             return {key: self.default(value) for key, value in obj.items()}
         if hasattr(obj, "__dict__"):
-            serialized_dict = {}
+            serialized_dict = {"target_type": repr(type(obj))}
             for key, value in obj.__dict__.items():
                 serialized_dict[key] = json.dumps(value, cls=FluxJSONEncoder)
             return serialized_dict
@@ -118,8 +119,18 @@ class FluxJSONDecoder(json.JSONDecoder):
         return self._convert_object(obj, self.target_type)
 
     def _convert_object(self, obj, target_type):
+        passed_in_target_type = obj.pop("target_type", None) if isinstance(obj, dict) else None
+        if get_origin(target_type) is Union:
+            for union_type in get_args(target_type):
+                if repr(union_type) == passed_in_target_type:
+                    target_type = union_type
+                    break
+        if get_origin(target_type) is Union:
+            target_type = type(obj)
         if get_origin(target_type) is list:
             target_type = get_args(target_type)[0]
+        if get_origin(target_type) is tuple:
+            return tuple(self._convert_object(item, get_args(target_type)[i]) for i, item in enumerate(obj))
         if isinstance(obj, list):
             return [self._convert_object(item, target_type) for item in obj]
 
@@ -154,6 +165,8 @@ class FluxJSONDecoder(json.JSONDecoder):
                         if self.is_optional_type(expected_type):
                             expected_type = expected_type.__args__[0]
                         deserialized_dict[key] = json.loads(value, cls=FluxJSONDecoder, target_type=expected_type)
+                if is_dataclass(target_type):
+                    return target_type(**deserialized_dict)
                 instance = target_type()
                 for key, value in target_type.__annotations__.items():
                     setattr(instance, key, deserialized_dict.get(key, None))

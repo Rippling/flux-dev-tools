@@ -1,10 +1,11 @@
 import base64
 import io
 import json
+from dataclasses import is_dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Union, get_args, get_origin
+from typing import Any, Union, get_args, get_origin
 
 
 class FluxJSONEncoder(json.JSONEncoder):
@@ -50,7 +51,7 @@ class FluxJSONEncoder(json.JSONEncoder):
         if isinstance(obj, dict):
             return {key: self.default(value) for key, value in obj.items()}
         if hasattr(obj, "__dict__"):
-            serialized_dict = {}
+            serialized_dict = {"target_type": repr(type(obj))}
             for key, value in obj.__dict__.items():
                 serialized_dict[key] = json.dumps(value, cls=FluxJSONEncoder)
             return serialized_dict
@@ -118,13 +119,23 @@ class FluxJSONDecoder(json.JSONDecoder):
         return self._convert_object(obj, self.target_type)
 
     def _convert_object(self, obj, target_type):
+        passed_in_target_type = obj.pop("target_type", None) if isinstance(obj, dict) else None
+        if get_origin(target_type) is Union:
+            for union_type in get_args(target_type):
+                if repr(union_type) == passed_in_target_type:
+                    target_type = union_type
+                    break
+        if get_origin(target_type) is Union:
+            target_type = type(obj)
         if get_origin(target_type) is list:
             target_type = get_args(target_type)[0]
+        if get_origin(target_type) is tuple and obj is not None:
+            return tuple(self._convert_object(item, get_args(target_type)[i]) for i, item in enumerate(obj))
         if isinstance(obj, list):
             return [self._convert_object(item, target_type) for item in obj]
 
         if target_type is not None:
-            if obj is None or type(obj) is get_origin(target_type) or type(obj) is target_type:
+            if obj is None or type(obj) is target_type:
                 return obj
             elif target_type is Decimal:
                 return Decimal(obj)
@@ -144,6 +155,18 @@ class FluxJSONDecoder(json.JSONDecoder):
                 return int(obj)
             elif target_type is str:
                 return str(obj)
+            elif target_type is dict or get_origin(target_type) is dict:
+                deserialized_dict = {}
+                for key, value in obj.items():
+                    value_target_type = None
+                    if (
+                        hasattr(target_type, "__args__")
+                        and len(target_type.__args__) == 2
+                        and target_type.__args__[1] is not Any
+                    ):
+                        value_target_type = target_type.__args__[1]
+                    deserialized_dict[key] = self._convert_object(value, target_type=value_target_type)
+                return deserialized_dict
             else:
                 if not obj:
                     return target_type()
@@ -154,10 +177,21 @@ class FluxJSONDecoder(json.JSONDecoder):
                         if self.is_optional_type(expected_type):
                             expected_type = expected_type.__args__[0]
                         deserialized_dict[key] = json.loads(value, cls=FluxJSONDecoder, target_type=expected_type)
+                if is_dataclass(target_type):
+                    return target_type(**deserialized_dict)
                 instance = target_type()
                 for key, value in target_type.__annotations__.items():
                     setattr(instance, key, deserialized_dict.get(key, None))
                 return instance
+
+        if isinstance(obj, str):
+            try:
+                return datetime.fromisoformat(obj)
+            except ValueError:
+                pass
+
+        if isinstance(obj, dict):
+            return {key: self._convert_object(value, target_type) for key, value in obj.items()}
 
         return obj
 

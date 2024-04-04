@@ -7,8 +7,8 @@ readme = "README.md"
 packages = [{include="flux_dev_tools"}]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-Flask = "^2.3.3"
+python = "^3.10"
+Flask = ">=2.3.3, <=3.0.2"
 werkzeug = "^2.3.7"
 rippling-flux-sdk = "^0"
 

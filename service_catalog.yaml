@@ -1,0 +1,5 @@
+version: 2025-05-14-16-39-20
+services:
+  - name: flux-dev-tools
+    team: rql-history
+    jira_project_key: HUB

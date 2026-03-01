@@ -5,23 +5,27 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   pypi:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set Package Version
         run: |
           pip install poetry
           poetry version "`poetry version -s`.$GITHUB_RUN_NUMBER"
 
-      - name: Publish to PyPI (via Poetry)
-        uses: JRubics/poetry-publish@v1.17
-        with:
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
+      - name: Publish to PyPI
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: poetry publish --build
 
-          # NOTE: un-comment the configuration below to publish to Test PyPI instead
-          # pypi_token: ${{ secrets.TEST_PYPI_TOKEN }}
-          # repository_name: testpypi
-          # repository_url: https://test.pypi.org/legacy/
+        # NOTE: to publish to Test PyPI instead, replace the env and run above with:
+        # env:
+        #   POETRY_REPOSITORIES_TESTPYPI_URL: https://test.pypi.org/legacy/
+        #   POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_TOKEN }}
+        # run: poetry publish --build -r testpypi
